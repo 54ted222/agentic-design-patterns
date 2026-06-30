@@ -209,6 +209,9 @@ const indexHtml = `<!DOCTYPE html>
       <p class="subtitle">Agentic Design Patterns</p>
     </div>
     <nav id="toc"><p class="loading">載入目錄中…</p></nav>
+    <div class="sidebar-foot">
+      <button id="clear-cache" type="button" title="清除快取與本機資料並重新整理">🗑 清除快取並重新整理</button>
+    </div>
   </aside>
 
   <div id="overlay"></div>
@@ -281,13 +284,14 @@ const indexHtml = `<!DOCTYPE html>
         gate.remove();
         import('./app.js');
       }
-      if (sessionStorage.getItem('adp:auth') === '1') {
+      // 用 localStorage 記住,輸入過一次密碼後長期免再輸入(直到清除快取)
+      if (localStorage.getItem('adp:auth') === '1') {
         start();
       } else {
         form.addEventListener('submit', (e) => {
           e.preventDefault();
           if (input.value === PASSWORD) {
-            sessionStorage.setItem('adp:auth', '1');
+            localStorage.setItem('adp:auth', '1');
             start();
           } else {
             err.style.display = 'block';
@@ -321,7 +325,7 @@ const manifest = {
 };
 
 const swJs = `// PWA service worker:外殼 cache-first、書籍內容 network-first(離線回退快取)。
-const CACHE = 'adp-v2';
+const CACHE = 'adp-v3';
 const SHELL = [
   './',
   'index.html',

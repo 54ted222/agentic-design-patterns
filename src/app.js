@@ -136,6 +136,32 @@ function closeSidebar() {
 menuToggle.addEventListener('click', openSidebar);
 overlay.addEventListener('click', closeSidebar);
 
+// 清除所有快取 / 本機資料(PWA cache、Service Worker、localStorage、sessionStorage)後重新整理
+const clearCacheBtn = document.getElementById('clear-cache');
+if (clearCacheBtn) {
+  clearCacheBtn.addEventListener('click', async () => {
+    if (!confirm('清除所有快取與本機資料(含播放進度與設定)並重新整理?')) return;
+    clearCacheBtn.disabled = true;
+    clearCacheBtn.textContent = '清除中…';
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      if (window.caches) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {
+      /* 盡力而為,失敗也照樣重新整理 */
+    }
+    // 加上時間參數避免瀏覽器再吃舊的 HTML 快取
+    location.replace(location.pathname + '?fresh=' + Date.now());
+  });
+}
+
 // 解析 hash：#book-variant/03-routing.md → { book, file }
 function parseHash() {
   const raw = location.hash.slice(1);

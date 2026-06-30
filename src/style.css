@@ -53,7 +53,9 @@ body {
   overflow-y: auto;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border);
-  padding: 24px 20px 48px;
+  /* 顧及瀏海 / 動態島與底部 home indicator 安全邊界 */
+  padding: calc(24px + env(safe-area-inset-top)) 20px
+    calc(48px + env(safe-area-inset-bottom));
 }
 
 .sidebar-head h1 {
@@ -122,11 +124,40 @@ body {
   display: none;
 }
 
+/* 側邊欄底部:清除快取 */
+.sidebar-foot {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+#clear-cache {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#clear-cache:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#clear-cache:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* ── 內容 ── */
 #content {
   flex: 1;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden; /* 避免長字串造成整頁左右滾動 */
   display: flex;
   flex-direction: column;
 }
@@ -137,6 +168,9 @@ body {
   margin: 0 auto;
   padding: 48px 32px 24px;
   flex: 1;
+  /* 長英文單字 / 網址在窄螢幕折行,不要撐出水平捲動 */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 #chapter h1 {
@@ -227,7 +261,7 @@ body {
   max-width: var(--max-w);
   width: 100%;
   margin: 0 auto;
-  padding: 16px 32px 24px;
+  padding: 16px 32px calc(24px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg) 70%, transparent);
 }
 
@@ -524,8 +558,8 @@ body {
 #menu-toggle {
   display: none;
   position: fixed;
-  top: 12px;
-  left: 12px;
+  top: calc(12px + env(safe-area-inset-top));
+  left: calc(12px + env(safe-area-inset-left));
   z-index: 30;
   width: 42px;
   height: 42px;
@@ -563,10 +597,17 @@ body {
     transform: translateX(0);
   }
   #chapter {
-    padding: 64px 20px 24px;
+    padding: 64px calc(20px + env(safe-area-inset-right)) 24px
+      calc(20px + env(safe-area-inset-left));
   }
   #player {
-    padding: 56px 16px 6px;
+    /* 56px 讓出固定的 ☰ 選單鈕,再加上瀏海 / 動態島安全邊界 */
+    padding: calc(56px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 6px
+      calc(16px + env(safe-area-inset-left));
+  }
+  #pager {
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
   }
   .player-bar {
     padding: 10px 12px;
@@ -578,5 +619,17 @@ body {
   .p-vol,
   .p-mute {
     display: none;
+  }
+}
+
+/* 小手機:播放控制鈕分兩行(以 spacer 強制換行) */
+@media (max-width: 480px) {
+  .p-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .p-controls .p-spacer {
+    flex-basis: 100%;
+    height: 0;
   }
 }
