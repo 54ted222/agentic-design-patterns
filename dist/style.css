@@ -261,6 +261,253 @@ body {
   color: #d1242f;
 }
 
+/* ── 語音播放器:黏在內容區頂端 ── */
+#player {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 16px 32px 6px;
+  background: linear-gradient(to bottom, var(--bg) 78%, transparent);
+}
+
+#player[hidden] {
+  display: none;
+}
+
+.player-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* 第一列:進度條 + 時間 */
+.p-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 第二列:控制按鈕 */
+.p-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.p-spacer {
+  flex: 1;
+}
+
+.p-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.p-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.p-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.p-skip {
+  gap: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.p-skip-ic {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* 主播放鍵:實心強調色 */
+.p-play {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.p-play:hover {
+  color: #fff;
+  opacity: 0.9;
+}
+
+.p-play .ic-pause {
+  display: none;
+}
+
+#player.playing .p-play .ic-play {
+  display: none;
+}
+
+#player.playing .p-play .ic-pause {
+  display: inline;
+}
+
+.p-mute .ic-mute {
+  display: none;
+}
+
+.p-mute.muted .ic-vol {
+  display: none;
+}
+
+.p-mute.muted .ic-mute {
+  display: inline;
+}
+
+/* 速度下拉選單 */
+.p-rate {
+  height: 34px;
+  padding: 0 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.p-rate:hover {
+  border-color: var(--accent);
+}
+
+/* 文字稿按鈕 */
+.p-text {
+  width: auto;
+  padding: 0 12px;
+}
+
+.p-time {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  text-align: center;
+}
+
+/* 進度條 / 音量條:統一外觀 */
+.p-seek,
+.p-vol {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 5px;
+  border-radius: 4px;
+  background: var(--border);
+  cursor: pointer;
+  outline: none;
+}
+
+.p-seek {
+  flex: 1;
+  min-width: 60px;
+  /* 已播放部分用強調色填滿(--p 由 JS 更新) */
+  background: linear-gradient(to right, var(--accent) var(--p, 0%), var(--border) var(--p, 0%));
+}
+
+.p-vol {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.p-seek::-webkit-slider-thumb,
+.p-vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+}
+
+.p-seek::-moz-range-thumb,
+.p-vol::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+/* ── 文字稿彈框 ── */
+#transcript-modal {
+  width: min(720px, 92vw);
+  max-height: 84vh;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+#transcript-modal::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--sidebar-bg);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.modal-body {
+  padding: 20px 24px 28px;
+  overflow-y: auto;
+  max-height: calc(84vh - 60px);
+  line-height: 1.9;
+}
+
+.modal-body p {
+  margin: 0 0 1.1em;
+}
+
+.modal-body .loading,
+.modal-body .error {
+  text-align: center;
+}
+
 /* ── 行動版 ── */
 #menu-toggle {
   display: none;
@@ -305,5 +552,19 @@ body {
   }
   #chapter {
     padding: 64px 20px 24px;
+  }
+  #player {
+    padding: 56px 16px 6px;
+  }
+  .player-bar {
+    padding: 10px 12px;
+  }
+  .p-controls {
+    gap: 6px;
+  }
+  /* 空間有限:收起音量滑桿,仍可用靜音鍵 */
+  .p-vol,
+  .p-mute {
+    display: none;
   }
 }
