@@ -4,10 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>代理設計模式 · 閱讀器</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="/src/style.css" />
+  <!-- 語法高亮樣式延後載入,不擋首屏渲染 -->
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github.min.css"
+    media="print"
+    onload="this.media='all'"
   />
 </head>
 <body>
@@ -42,6 +46,7 @@
           </button>
           <button id="p-fwd" class="p-btn p-skip" title="快進 15 秒" aria-label="快進 15 秒"><span class="p-skip-ic">↻</span>15</button>
           <span class="p-spacer"></span>
+          <button id="p-continue" class="p-btn p-text p-toggle" title="自動續播下一章" aria-pressed="true">續播</button>
           <select id="p-rate" class="p-rate" title="播放速度" aria-label="播放速度"></select>
           <button id="p-transcript" class="p-btn p-text" title="查看文字稿">文字稿</button>
           <button id="p-mute" class="p-btn p-mute" title="靜音" aria-label="靜音">
@@ -70,8 +75,9 @@
     <div id="transcript-body" class="modal-body"></div>
   </dialog>
 
-  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
+  <!-- marked 體積小且首屏需要,以 defer 非同步載入(在 app.js 之前執行) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js" defer></script>
+  <!-- highlight.js 改由 app.js 在「章節有程式碼時」才動態載入,不進首屏關鍵路徑 -->
   <script src="/src/app.js" type="module"></script>
 </body>
 </html>

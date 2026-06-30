@@ -404,6 +404,18 @@ body {
   padding: 0 12px;
 }
 
+/* 開關型按鈕(自動續播):開啟時實心強調色 */
+.p-toggle.on {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.p-toggle.on:hover {
+  color: #fff;
+  opacity: 0.9;
+}
+
 .p-time {
   flex-shrink: 0;
   font-size: 0.78rem;

@@ -17,17 +17,36 @@ let chapters = []; // [{ file, title }]
 marked.setOptions({
   breaks: false,
   gfm: true,
-  highlight(code, lang) {
-    if (window.hljs && lang && hljs.getLanguage(lang)) {
-      try {
-        return hljs.highlight(code, { language: lang }).value;
-      } catch {
-        /* 略過 */
-      }
-    }
-    return code;
-  },
 });
+
+// highlight.js 延後載入:只有當章節真的含程式碼區塊時才動態抓 CDN,
+// 且不擋章節渲染——先把內文顯示出來,語法高亮在背景補上。
+let hljsPromise = null;
+function ensureHljs() {
+  if (window.hljs) return Promise.resolve(window.hljs);
+  if (!hljsPromise) {
+    hljsPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      // common 版(約 40 種常見語言)比 full build 小很多
+      s.src = 'https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11/highlight.min.js';
+      s.onload = () => resolve(window.hljs);
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  return hljsPromise;
+}
+
+// 對容器內所有程式碼區塊上色(若需要才載入 hljs)
+function highlightLater(container) {
+  const blocks = container.querySelectorAll('pre code');
+  if (!blocks.length) return;
+  ensureHljs()
+    .then((hljs) => blocks.forEach((b) => hljs.highlightElement(b)))
+    .catch(() => {
+      /* CDN 失敗就維持純文字,不影響閱讀 */
+    });
+}
 
 async function fetchText(path) {
   const res = await fetch(path);
@@ -79,7 +98,7 @@ async function loadChapter(file) {
     const md = await fetchText(bookBase() + file);
     chapterEl.innerHTML = marked.parse(md);
     rewriteAssetPaths(chapterEl);
-    if (window.hljs) chapterEl.querySelectorAll('pre code').forEach((b) => hljs.highlightElement(b));
+    highlightLater(chapterEl); // 非阻塞:背景補上語法高亮
   } catch (err) {
     chapterEl.innerHTML = `<p class="error">${err.message}</p>`;
   }
@@ -184,6 +203,21 @@ const rateSel = $p('p-rate');
 const muteBtn = $p('p-mute');
 const volEl = $p('p-vol');
 const transcriptBtn = $p('p-transcript');
+const continueBtn = $p('p-continue');
+
+// 自動續播:一章語音播完後,自動切到下一章並播放(預設開啟,可關閉並記住)
+let autoNext = localStorage.getItem('adp:autonext') !== '0';
+let autoPlayOnLoad = false; // 下一章 metadata 就緒後是否自動播放
+
+function applyAutoNext(on) {
+  autoNext = on;
+  continueBtn.classList.toggle('on', on);
+  continueBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  continueBtn.title = on ? '自動續播下一章(開)' : '自動續播下一章(關)';
+  localStorage.setItem('adp:autonext', on ? '1' : '0');
+}
+continueBtn.addEventListener('click', () => applyAutoNext(!autoNext));
+applyAutoNext(autoNext);
 
 // 速度選單:x0.5 ~ x4,每級 0.25(用整數 *0.25 避免浮點誤差)
 for (let i = 2; i <= 16; i++) {
@@ -234,10 +268,17 @@ audio.addEventListener('loadedmetadata', () => {
   // 還原上次播放位置
   const saved = parseFloat(localStorage.getItem(posKey()) || '0');
   if (saved > 0 && saved < audio.duration - 2) audio.currentTime = saved;
+  // 由「自動續播」切過來的新章節:從頭播放
+  if (autoPlayOnLoad) {
+    autoPlayOnLoad = false;
+    audio.currentTime = 0;
+    audio.play().catch(() => {}); // 瀏覽器擋自動播放就靜默略過
+  }
 });
 
 // 音檔不存在 / 載入失敗 → 隱藏播放器(不打擾閱讀)
 audio.addEventListener('error', () => {
+  autoPlayOnLoad = false; // 下一章沒有音檔就停止續播鏈
   player.hidden = true;
   player.classList.remove('playing');
 });
@@ -256,6 +297,15 @@ audio.addEventListener('pause', () => player.classList.remove('playing'));
 audio.addEventListener('ended', () => {
   player.classList.remove('playing');
   if (curAudioFile) localStorage.removeItem(posKey());
+  // 自動續播:切到下一章並自動播放
+  if (autoNext) {
+    const i = chapters.findIndex((c) => c.file === curAudioFile);
+    const nextCh = i >= 0 ? chapters[i + 1] : null;
+    if (nextCh) {
+      autoPlayOnLoad = true; // 待新章 metadata 就緒後自動播放
+      navigate(nextCh.file);
+    }
+  }
 });
 
 // ── 控制項 ──
