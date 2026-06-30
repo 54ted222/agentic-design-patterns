@@ -263,6 +263,8 @@ function setAudio(file) {
 
 audio.addEventListener('loadedmetadata', () => {
   player.hidden = false;
+  audio.defaultPlaybackRate = currentRate; // 新章節維持使用者選的速度
+  audio.playbackRate = currentRate;
   durEl.textContent = fmtTime(audio.duration);
   seek.max = Math.max(1, Math.floor(audio.duration));
   // 還原上次播放位置
@@ -331,10 +333,19 @@ seek.addEventListener('change', () => {
 });
 
 // 播放速度:下拉選單,記住設定
+let currentRate = 1;
 function applyRate(r) {
   if (!(r >= 0.5 && r <= 4)) r = 1; // 防呆:超出範圍或非數字回到 1
   r = Math.round(r / 0.25) * 0.25; // 對齊 0.25 級距,確保對得到選項
+  currentRate = r;
+  // 只調整速率,保留目前播放位置與播放狀態——避免某些瀏覽器在改速率時
+  // 重載/跳位造成「重新播放」。
+  const wasPlaying = !audio.paused;
+  const t = audio.currentTime;
+  audio.defaultPlaybackRate = r; // 切章/重載媒體後不會被重置回 1×
   audio.playbackRate = r;
+  if (Number.isFinite(t) && Math.abs(audio.currentTime - t) > 0.05) audio.currentTime = t;
+  if (wasPlaying && audio.paused) audio.play().catch(() => {});
   rateSel.value = String(r);
   localStorage.setItem('adp:rate', String(r));
 }
