@@ -11,5 +11,8 @@
   "keywords": [],
   "author": "gavin",
   "license": "ISC",
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "openai": "^6.45.0"
+  }
 }
