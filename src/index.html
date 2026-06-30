@@ -24,12 +24,51 @@
   <div id="overlay"></div>
 
   <main id="content">
+    <div id="player" hidden>
+      <audio id="audio" preload="metadata"></audio>
+      <div class="player-bar">
+        <!-- 第一列:進度 -->
+        <div class="p-progress">
+          <span id="p-cur" class="p-time">0:00</span>
+          <input id="p-seek" class="p-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="播放進度" />
+          <span id="p-dur" class="p-time">0:00</span>
+        </div>
+        <!-- 第二列:控制 -->
+        <div class="p-controls">
+          <button id="p-back" class="p-btn p-skip" title="倒退 15 秒" aria-label="倒退 15 秒">15<span class="p-skip-ic">↺</span></button>
+          <button id="p-play" class="p-btn p-play" title="播放 / 暫停" aria-label="播放">
+            <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+          </button>
+          <button id="p-fwd" class="p-btn p-skip" title="快進 15 秒" aria-label="快進 15 秒"><span class="p-skip-ic">↻</span>15</button>
+          <span class="p-spacer"></span>
+          <select id="p-rate" class="p-rate" title="播放速度" aria-label="播放速度"></select>
+          <button id="p-transcript" class="p-btn p-text" title="查看文字稿">文字稿</button>
+          <button id="p-mute" class="p-btn p-mute" title="靜音" aria-label="靜音">
+            <svg class="ic-vol" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12z"/></svg>
+            <svg class="ic-mute" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm15.6 3 2.1-2.1-1.4-1.4L17.2 10.6 15.1 8.5l-1.4 1.4 2.1 2.1-2.1 2.1 1.4 1.4 2.1-2.1 2.1 2.1 1.4-1.4z"/></svg>
+          </button>
+          <input id="p-vol" class="p-vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="音量" />
+        </div>
+      </div>
+    </div>
+
     <article id="chapter"><p class="loading">載入中…</p></article>
+
     <footer id="pager">
       <button id="prev" disabled>← 上一章</button>
       <button id="next" disabled>下一章 →</button>
     </footer>
   </main>
+
+  <!-- 文字稿彈框 -->
+  <dialog id="transcript-modal">
+    <div class="modal-head">
+      <h2 id="transcript-title">文字稿</h2>
+      <button id="transcript-close" class="p-btn" aria-label="關閉">✕</button>
+    </div>
+    <div id="transcript-body" class="modal-body"></div>
+  </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>

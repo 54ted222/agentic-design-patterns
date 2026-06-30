@@ -96,6 +96,7 @@ function updatePager(file) {
 async function navigate(file, { push = true } = {}) {
   setActive(file);
   updatePager(file);
+  setAudio(file);
   await loadChapter(file);
   localStorage.setItem(`adp:last:${bookDir}`, file);
   if (push) history.pushState({ file, book: bookDir }, '', `#${bookDir}/${file}`);
@@ -166,6 +167,208 @@ window.addEventListener('popstate', (e) => {
   if (st.book && st.book !== bookDir) switchBook(st.book, { wantedFile: st.file, push: false });
   else navigate(st.file, { push: false });
 });
+
+/* ── 語音講稿播放器 ───────────────────────────────────────────────
+   每一章 NN-topic.md 對應 NN-topic.transcript.mp3。切換章節時嘗試載入,
+   檔案不存在就自動隱藏整個播放器。 */
+const player = document.getElementById('player');
+const audio = document.getElementById('audio');
+const SKIP = 15; // 快進 / 倒退秒數
+
+const $p = (id) => document.getElementById(id);
+const playBtn = $p('p-play');
+const seek = $p('p-seek');
+const curEl = $p('p-cur');
+const durEl = $p('p-dur');
+const rateSel = $p('p-rate');
+const muteBtn = $p('p-mute');
+const volEl = $p('p-vol');
+const transcriptBtn = $p('p-transcript');
+
+// 速度選單:x0.5 ~ x4,每級 0.25(用整數 *0.25 避免浮點誤差)
+for (let i = 2; i <= 16; i++) {
+  const r = i * 0.25;
+  const opt = document.createElement('option');
+  opt.value = String(r);
+  opt.textContent = `${r}×`;
+  if (r === 1) opt.selected = true;
+  rateSel.appendChild(opt);
+}
+
+let curAudioFile = null; // 目前音檔對應的章節 file
+let scrubbing = false; // 使用者正在拖曳進度條
+
+const audioSrc = (file) => bookBase() + file.replace(/\.md$/i, '.transcript.mp3');
+const posKey = () => `adp:pos:${bookDir}/${curAudioFile}`;
+
+function fmtTime(s) {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function paintSeek() {
+  const pct = seek.max > 0 ? (seek.value / seek.max) * 100 : 0;
+  seek.style.setProperty('--p', `${pct}%`);
+}
+
+// 切章:換音源,沒有音檔就隱藏播放器
+function setAudio(file) {
+  curAudioFile = file;
+  audio.pause();
+  player.classList.remove('playing');
+  player.hidden = true; // 先藏,確認可播放再顯示
+  seek.value = 0;
+  paintSeek();
+  curEl.textContent = '0:00';
+  durEl.textContent = '0:00';
+  audio.src = audioSrc(file);
+  audio.load();
+}
+
+audio.addEventListener('loadedmetadata', () => {
+  player.hidden = false;
+  durEl.textContent = fmtTime(audio.duration);
+  seek.max = Math.max(1, Math.floor(audio.duration));
+  // 還原上次播放位置
+  const saved = parseFloat(localStorage.getItem(posKey()) || '0');
+  if (saved > 0 && saved < audio.duration - 2) audio.currentTime = saved;
+});
+
+// 音檔不存在 / 載入失敗 → 隱藏播放器(不打擾閱讀)
+audio.addEventListener('error', () => {
+  player.hidden = true;
+  player.classList.remove('playing');
+});
+
+audio.addEventListener('timeupdate', () => {
+  if (!scrubbing) {
+    seek.value = Math.floor(audio.currentTime);
+    paintSeek();
+  }
+  curEl.textContent = fmtTime(audio.currentTime);
+  if (curAudioFile) localStorage.setItem(posKey(), String(audio.currentTime));
+});
+
+audio.addEventListener('play', () => player.classList.add('playing'));
+audio.addEventListener('pause', () => player.classList.remove('playing'));
+audio.addEventListener('ended', () => {
+  player.classList.remove('playing');
+  if (curAudioFile) localStorage.removeItem(posKey());
+});
+
+// ── 控制項 ──
+playBtn.addEventListener('click', () => {
+  if (audio.paused) audio.play();
+  else audio.pause();
+});
+$p('p-back').addEventListener('click', () => {
+  audio.currentTime = Math.max(0, audio.currentTime - SKIP);
+});
+$p('p-fwd').addEventListener('click', () => {
+  audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + SKIP);
+});
+
+seek.addEventListener('input', () => {
+  scrubbing = true;
+  curEl.textContent = fmtTime(Number(seek.value));
+  paintSeek();
+});
+seek.addEventListener('change', () => {
+  audio.currentTime = Number(seek.value);
+  scrubbing = false;
+});
+
+// 播放速度:下拉選單,記住設定
+function applyRate(r) {
+  if (!(r >= 0.5 && r <= 4)) r = 1; // 防呆:超出範圍或非數字回到 1
+  r = Math.round(r / 0.25) * 0.25; // 對齊 0.25 級距,確保對得到選項
+  audio.playbackRate = r;
+  rateSel.value = String(r);
+  localStorage.setItem('adp:rate', String(r));
+}
+rateSel.addEventListener('change', () => applyRate(Number(rateSel.value)));
+
+// 音量 / 靜音,記住設定
+function applyVolume(v, muted) {
+  audio.volume = v;
+  audio.muted = muted;
+  volEl.value = v;
+  muteBtn.classList.toggle('muted', muted || v === 0);
+  localStorage.setItem('adp:vol', String(v));
+  localStorage.setItem('adp:muted', muted ? '1' : '0');
+}
+volEl.addEventListener('input', () => applyVolume(Number(volEl.value), false));
+muteBtn.addEventListener('click', () => applyVolume(audio.volume, !audio.muted));
+
+// 鍵盤:空白鍵播放/暫停、左右方向鍵快轉(不干擾輸入框與內文捲動)
+document.addEventListener('keydown', (e) => {
+  if (player.hidden) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    audio.paused ? audio.play() : audio.pause();
+  } else if (e.code === 'ArrowLeft' && e.altKey) {
+    audio.currentTime = Math.max(0, audio.currentTime - SKIP);
+  } else if (e.code === 'ArrowRight' && e.altKey) {
+    audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + SKIP);
+  }
+});
+
+// ── 文字稿彈框 ──
+const transcriptModal = document.getElementById('transcript-modal');
+const transcriptBody = document.getElementById('transcript-body');
+const transcriptTitle = document.getElementById('transcript-title');
+const transcriptCache = new Map(); // file → 段落 HTML,避免重複下載
+
+const escapeHtml = (s) =>
+  s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+async function openTranscript() {
+  if (!curAudioFile) return;
+  const ch = chapters.find((c) => c.file === curAudioFile);
+  transcriptTitle.textContent = ch ? `文字稿 · ${ch.title}` : '文字稿';
+  transcriptModal.showModal();
+
+  if (transcriptCache.has(curAudioFile)) {
+    transcriptBody.innerHTML = transcriptCache.get(curAudioFile);
+    transcriptBody.scrollTop = 0;
+    return;
+  }
+  transcriptBody.innerHTML = '<p class="loading">載入文字稿中…</p>';
+  try {
+    const path = bookBase() + curAudioFile.replace(/\.md$/i, '.transcript.md');
+    const text = await fetchText(path);
+    // 純文字講稿:以空行分段,逐段轉成 <p>
+    const html = text
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+    transcriptCache.set(curAudioFile, html);
+    transcriptBody.innerHTML = html;
+    transcriptBody.scrollTop = 0;
+  } catch (err) {
+    transcriptBody.innerHTML = `<p class="error">${err.message}</p>`;
+  }
+}
+
+transcriptBtn.addEventListener('click', openTranscript);
+document.getElementById('transcript-close').addEventListener('click', () => transcriptModal.close());
+// 點背景(dialog 本體外的區域)關閉
+transcriptModal.addEventListener('click', (e) => {
+  if (e.target === transcriptModal) transcriptModal.close();
+});
+
+// 還原偏好設定
+applyRate(parseFloat(localStorage.getItem('adp:rate')) || 1);
+applyVolume(
+  localStorage.getItem('adp:vol') != null ? parseFloat(localStorage.getItem('adp:vol')) : 1,
+  localStorage.getItem('adp:muted') === '1'
+);
 
 (async function init() {
   // 靜態部署(GitHub Pages)讀 books.json；本地 dev server 走 /api/books；皆失敗則用預設。

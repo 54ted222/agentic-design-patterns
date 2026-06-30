@@ -1,6 +1,7 @@
 // 零依賴靜態伺服器：服務專案根目錄，讓閱讀器(/src)與書籍(/book)可一起存取。
 import { createServer } from 'node:http';
-import { readFile, readdir, access } from 'node:fs/promises';
+import { readdir, access, stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,6 +15,8 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.md': 'text/markdown; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -63,10 +66,41 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const data = await readFile(filePath);
+    const info = await stat(filePath);
+    if (info.isDirectory()) { res.writeHead(404).end('404 Not Found'); return; }
     const type = MIME[extname(filePath).toLowerCase()] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
-    res.end(data);
+    const total = info.size;
+
+    // 支援 Range 請求(音訊播放與拖曳進度條都需要),回 206 Partial Content。
+    const range = req.headers.range;
+    if (range) {
+      const m = /^bytes=(\d*)-(\d*)$/.exec(range);
+      let start = m && m[1] ? parseInt(m[1], 10) : 0;
+      let end = m && m[2] ? parseInt(m[2], 10) : total - 1;
+      if (Number.isNaN(start) || Number.isNaN(end) || start > end || end >= total) {
+        res.writeHead(416, { 'Content-Range': `bytes */${total}` }).end();
+        return;
+      }
+      res.writeHead(206, {
+        'Content-Type': type,
+        'Content-Range': `bytes ${start}-${end}/${total}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': end - start + 1,
+        'Cache-Control': 'no-cache',
+      });
+      if (req.method === 'HEAD') { res.end(); return; }
+      createReadStream(filePath, { start, end }).pipe(res);
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': type,
+      'Content-Length': total,
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'no-cache',
+    });
+    if (req.method === 'HEAD') { res.end(); return; }
+    createReadStream(filePath).pipe(res);
   } catch (err) {
     if (err.code === 'ENOENT') {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('404 Not Found');
