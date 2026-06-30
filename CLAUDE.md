@@ -2,10 +2,10 @@
 
 ## 電子書格式為
 
-- 語言為 繁體中文 zh-TW
-- 書籍目錄 book/index.md
-- 書籍章節 book/[number]-[topic].md
-- 各章節的引用資源 book/assets/[number]-[topic]/[name].[ext]
+- 預設語言為 繁體中文 zh-TW
+- 書籍目錄 book[-variant?]/index.md
+- 書籍章節 book[-variant?]/[number]-[topic].md
+- 各章節的引用資源 book[-variant?]/assets/[number]-[topic]/[name].[ext]
 
 ## 提供一個靜態網頁的閱讀器
 

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>代理設計模式 · 閱讀器</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github.min.css"
+  />
+</head>
+<body>
+  <button id="menu-toggle" aria-label="開啟目錄">☰</button>
+
+  <aside id="sidebar">
+    <div class="sidebar-head">
+      <h1>代理設計模式</h1>
+      <p class="subtitle">Agentic Design Patterns</p>
+    </div>
+    <nav id="toc"><p class="loading">載入目錄中…</p></nav>
+  </aside>
+
+  <div id="overlay"></div>
+
+  <main id="content">
+    <article id="chapter"><p class="loading">載入中…</p></article>
+    <footer id="pager">
+      <button id="prev" disabled>← 上一章</button>
+      <button id="next" disabled>下一章 →</button>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
+  <script src="/src/app.js" type="module"></script>
+</body>
+</html>
