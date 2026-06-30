@@ -294,7 +294,7 @@ if __name__ == "__main__":
     main()
 ```
 
-這段程式碼示範了一個使用 Crew.ai 函式庫的簡單應用,用來模擬一項金融分析任務。它定義了一個自訂工具 `get_stock_price`,用來模擬查詢預先定義之股票代碼的股價。這個工具的設計是:對於有效的代碼回傳一個浮點數,對於無效的代碼則拋出 `ValueError`。程式碼建立了一個名為 `financial_analyst_agent` 的 Crew.ai 代理,賦予它資深金融分析師(Senior Financial Analyst)的角色。這個代理被賦予 `get_stock_price` 工具來進行互動。接著定義了一個任務 `analyze_aapl_task`,具體指示代理使用該工具去查詢 AAPL 的模擬股價。任務描述中包含了清楚的指示,說明在使用工具時該如何處理成功與失敗的情況。隨後組建一個 Crew,由 `financial_analyst_agent` 與 `analyze_aapl_task` 所構成。代理與 crew 都啟用了 verbose 設定,以便在執行期間提供詳細的日誌。腳本的主要部分在標準的 `if __name__ == "__main__":` 區塊中,使用 `kickoff()` 方法執行 crew 的任務。在啟動 crew 之前,它會檢查代理運作所必需的 `OPENAI_API_KEY` 環境變數是否已設定。crew 執行的結果(也就是任務的輸出)接著會被印到主控台。程式碼也包含了基本的日誌設定,以便更好地追蹤 crew 的動作與工具呼叫。它使用環境變數來管理 API 金鑰,不過也指出在正式環境中建議採用更安全的方法。簡而言之,其核心邏輯展示了如何定義工具、代理與任務,以在 Crew.ai 中打造一個協作式的工作流程。
+這段程式碼示範了一個使用 CrewAI 函式庫的簡單應用,用來模擬一項金融分析任務。它定義了一個自訂工具 `get_stock_price`,用來模擬查詢預先定義之股票代碼的股價。這個工具的設計是:對於有效的代碼回傳一個浮點數,對於無效的代碼則拋出 `ValueError`。程式碼建立了一個名為 `financial_analyst_agent` 的 CrewAI 代理,賦予它資深金融分析師(Senior Financial Analyst)的角色。這個代理被賦予 `get_stock_price` 工具來進行互動。接著定義了一個任務 `analyze_aapl_task`,具體指示代理使用該工具去查詢 AAPL 的模擬股價。任務描述中包含了清楚的指示,說明在使用工具時該如何處理成功與失敗的情況。隨後組建一個 Crew,由 `financial_analyst_agent` 與 `analyze_aapl_task` 所構成。代理與 crew 都啟用了 verbose 設定,以便在執行期間提供詳細的日誌。腳本的主要部分在標準的 `if __name__ == "__main__":` 區塊中,使用 `kickoff()` 方法執行 crew 的任務。在啟動 crew 之前,它會檢查代理運作所必需的 `OPENAI_API_KEY` 環境變數是否已設定。crew 執行的結果(也就是任務的輸出)接著會被印到主控台。程式碼也包含了基本的日誌設定,以便更好地追蹤 crew 的動作與工具呼叫。它使用環境變數來管理 API 金鑰,不過也指出在正式環境中建議採用更安全的方法。簡而言之,其核心邏輯展示了如何定義工具、代理與任務,以在 CrewAI 中打造一個協作式的工作流程。
 
 ## 動手實作範例(Google ADK)
 

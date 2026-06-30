@@ -418,5 +418,3 @@ OpenRouter 提供一份詳盡的排行榜(https://openrouter.ai/rankings),它依
 1. Google's Agent Development Kit(ADK):<https://google.github.io/adk-docs/>
 2. Gemini Flash 2.5 & Gemini 2.5 Pro:<https://aistudio.google.com/>
 3. OpenRouter:<https://openrouter.ai/docs/quickstart>
-</content>
-</invoke>
