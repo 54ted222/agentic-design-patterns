@@ -1,5 +1,5 @@
 // PWA service worker:外殼 cache-first、書籍內容 network-first(離線回退快取)。
-const CACHE = 'adp-v1';
+const CACHE = 'adp-v2';
 const SHELL = [
   './',
   'index.html',
@@ -9,9 +9,9 @@ const SHELL = [
   'manifest.webmanifest',
   'icon-192.png',
   'icon-512.png',
-  'https://cdn.jsdelivr.net/npm/marked@12/marked.min.js',
-  'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js',
-  'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github.min.css',
+  'vendor/marked.min.js',
+  'vendor/highlight.min.js',
+  'vendor/highlight-github.css',
 ];
 self.addEventListener('install', (e) => {
   self.skipWaiting();

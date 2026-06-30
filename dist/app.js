@@ -27,8 +27,8 @@ function ensureHljs() {
   if (!hljsPromise) {
     hljsPromise = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      // common 版(約 40 種常見語言)比 full build 小很多
-      s.src = 'https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11/highlight.min.js';
+      // 與 app.js 同目錄的 vendor/(本地檔):dev 為 /src/vendor、dist 為 ./vendor
+      s.src = new URL('vendor/highlight.min.js', import.meta.url).href;
       s.onload = () => resolve(window.hljs);
       s.onerror = reject;
       document.head.appendChild(s);

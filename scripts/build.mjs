@@ -124,15 +124,9 @@ const indexHtml = `<!DOCTYPE html>
   <meta name="apple-mobile-web-app-title" content="代理設計模式" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)" />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="style.css" />
-  <!-- 語法高亮樣式延後載入,不擋首屏渲染 -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github.min.css"
-    media="print"
-    onload="this.media='all'"
-  />
+  <!-- 語法高亮樣式(本地,不依賴外部 CDN) -->
+  <link rel="stylesheet" href="vendor/highlight-github.css" />
   <style>
     #gate {
       position: fixed;
@@ -266,8 +260,8 @@ const indexHtml = `<!DOCTYPE html>
     <div id="transcript-body" class="modal-body"></div>
   </dialog>
 
-  <!-- marked 體積小且首屏需要;highlight.js 改由 app.js 在章節有程式碼時才動態載入 -->
-  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <!-- marked 本地載入(同源、即時),不依賴外部 CDN;highlight.js 由 app.js 動態載入本地檔 -->
+  <script src="vendor/marked.min.js"></script>
   <script>
     // 註冊 service worker(PWA 離線支援)
     if ('serviceWorker' in navigator) {
@@ -327,7 +321,7 @@ const manifest = {
 };
 
 const swJs = `// PWA service worker:外殼 cache-first、書籍內容 network-first(離線回退快取)。
-const CACHE = 'adp-v1';
+const CACHE = 'adp-v2';
 const SHELL = [
   './',
   'index.html',
@@ -337,9 +331,9 @@ const SHELL = [
   'manifest.webmanifest',
   'icon-192.png',
   'icon-512.png',
-  'https://cdn.jsdelivr.net/npm/marked@12/marked.min.js',
-  'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js',
-  'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github.min.css',
+  'vendor/marked.min.js',
+  'vendor/highlight.min.js',
+  'vendor/highlight-github.css',
 ];
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -394,6 +388,7 @@ async function build() {
   // 1. 外殼檔
   await cp(join(SRC, 'app.js'), join(DIST, 'app.js'));
   await cp(join(SRC, 'style.css'), join(DIST, 'style.css'));
+  await cp(join(SRC, 'vendor'), join(DIST, 'vendor'), { recursive: true }); // marked / highlight.js 本地副本
   await writeFile(join(DIST, 'index.html'), indexHtml);
   await writeFile(join(DIST, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2));
   await writeFile(join(DIST, 'sw.js'), swJs);
