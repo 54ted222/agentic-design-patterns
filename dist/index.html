@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+  <meta name="googlebot" content="noindex, nofollow" />
+  <title>代理設計模式 · 閱讀器</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="代理設計模式" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)" />
+  <link rel="stylesheet" href="style.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github.min.css"
+  />
+  <style>
+    #gate {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--bg, #fff);
+      color: var(--fg, #1f2328);
+    }
+    #gate form {
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+    }
+    #gate h1 {
+      font-size: 1.3rem;
+      margin: 0 0 6px;
+    }
+    #gate p {
+      margin: 0 0 20px;
+      color: var(--muted, #656d76);
+      font-size: 0.9rem;
+    }
+    #gate-pw {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1.1rem;
+      text-align: center;
+      letter-spacing: 0.3em;
+      color: var(--fg, #1f2328);
+      background: var(--sidebar-bg, #f6f8fa);
+      border: 1px solid var(--border, #d8dee4);
+      border-radius: 10px;
+    }
+    #gate button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      color: #fff;
+      background: #2563eb;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #gate-err {
+      display: none;
+      margin-top: 12px;
+      color: #d1242f;
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="gate">
+    <form id="gate-form">
+      <h1>代理設計模式</h1>
+      <p>請輸入密碼以閱讀</p>
+      <input
+        id="gate-pw"
+        type="password"
+        inputmode="numeric"
+        autocomplete="off"
+        autofocus
+        aria-label="密碼"
+      />
+      <button type="submit">進入</button>
+      <div id="gate-err">密碼錯誤,請再試一次</div>
+    </form>
+  </div>
+
+  <button id="menu-toggle" aria-label="開啟目錄">☰</button>
+
+  <aside id="sidebar">
+    <div class="sidebar-head">
+      <h1>代理設計模式</h1>
+      <p class="subtitle">Agentic Design Patterns</p>
+    </div>
+    <nav id="toc"><p class="loading">載入目錄中…</p></nav>
+  </aside>
+
+  <div id="overlay"></div>
+
+  <main id="content">
+    <article id="chapter"><p class="loading">載入中…</p></article>
+    <footer id="pager">
+      <button id="prev" disabled>← 上一章</button>
+      <button id="next" disabled>下一章 →</button>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
+  <script>
+    // 註冊 service worker(PWA 離線支援)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+    // 密碼閘門:正確前不載入閱讀器(亦不抓取任何書籍內容)。
+    (function () {
+      const PASSWORD = '1234';
+      const gate = document.getElementById('gate');
+      const form = document.getElementById('gate-form');
+      const input = document.getElementById('gate-pw');
+      const err = document.getElementById('gate-err');
+      let started = false;
+      function start() {
+        if (started) return;
+        started = true;
+        gate.remove();
+        import('./app.js');
+      }
+      if (sessionStorage.getItem('adp:auth') === '1') {
+        start();
+      } else {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          if (input.value === PASSWORD) {
+            sessionStorage.setItem('adp:auth', '1');
+            start();
+          } else {
+            err.style.display = 'block';
+            input.value = '';
+            input.focus();
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
