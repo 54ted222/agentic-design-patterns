@@ -420,8 +420,10 @@ async function build() {
   await writeFile(join(DIST, 'books.json'), JSON.stringify(books));
 
   // 4. 複製書籍內容(含 assets)
+  // dereference: true → 把符號連結(例如 lite 版共用 full 版 assets 的連結)展開成實體檔案,
+  // 讓部署產物自我完備、不含符號連結(避免 GitHub Pages 打包 tar 遇到連結問題)。
   for (const b of books) {
-    await cp(join(ROOT, b.dir), join(DIST, b.dir), { recursive: true });
+    await cp(join(ROOT, b.dir), join(DIST, b.dir), { recursive: true, dereference: true });
   }
 
   console.log(`✅ 建置完成 → dist/  (書籍:${books.map((b) => b.dir).join(', ')})`);
