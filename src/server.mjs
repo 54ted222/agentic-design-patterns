@@ -1,4 +1,4 @@
-// 零依賴靜態伺服器：服務專案根目錄，讓閱讀器(/src)與書籍(/book)可一起存取。
+// 零依賴靜態伺服器：服務專案根目錄，讓閱讀器(/src)與書籍(/books)可一起存取。
 import { createServer } from 'node:http';
 import { readdir, access, stat } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
@@ -26,22 +26,33 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-// 列出所有書籍變體：根目錄下名為 book 或 book-* 且含 index.md 的資料夾。
+// 列出所有書籍：books/ 底下每個含索引檔(index.md 或 00-index.md)的子資料夾。
 async function listBooks() {
-  const entries = await readdir(ROOT, { withFileTypes: true });
-  const dirs = entries
-    .filter((e) => e.isDirectory() && /^book(-.+)?$/.test(e.name))
+  const BOOKS = 'books';
+  let entries;
+  try {
+    entries = await readdir(join(ROOT, BOOKS), { withFileTypes: true });
+  } catch {
+    return []; // 沒有 books/ 目錄
+  }
+  const names = entries
+    .filter((e) => e.isDirectory())
     .map((e) => e.name)
     .sort();
   const books = [];
-  for (const name of dirs) {
-    try {
-      await access(join(ROOT, name, 'index.md'));
-      const variant = name === 'book' ? '' : name.slice('book-'.length);
-      books.push({ dir: name, variant, label: variant || '預設' });
-    } catch {
-      /* 沒有 index.md 就略過 */
+  for (const name of names) {
+    let index = null;
+    for (const cand of ['index.md', '00-index.md']) {
+      try {
+        await access(join(ROOT, BOOKS, name, cand));
+        index = cand;
+        break;
+      } catch {
+        /* 試下一個候選索引檔名 */
+      }
     }
+    if (!index) continue; // 沒有索引檔就略過
+    books.push({ dir: `${BOOKS}/${name}`, index, label: name });
   }
   return books;
 }

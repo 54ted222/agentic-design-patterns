@@ -1,5 +1,5 @@
 // PWA service worker:外殼 cache-first、書籍內容 network-first(離線回退快取)。
-const CACHE = 'adp-v3';
+const CACHE = 'adp-v4';
 const SHELL = [
   './',
   'index.html',

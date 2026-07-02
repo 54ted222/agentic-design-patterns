@@ -251,6 +251,21 @@ body {
   background: var(--sidebar-bg);
 }
 
+/* mermaid 圖:置中、可橫向捲動、未渲染前先隱藏原始圖碼避免閃現 */
+#chapter .mermaid {
+  margin: 1.4em 0;
+  text-align: center;
+  overflow-x: auto;
+}
+#chapter .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+#chapter .mermaid:not([data-processed]) {
+  color: transparent;
+  min-height: 2em;
+}
+
 /* ── 分頁 ── */
 #pager {
   position: sticky;

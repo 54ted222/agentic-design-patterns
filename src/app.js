@@ -1,6 +1,8 @@
-// 簡易電子書閱讀器：解析 book/index.md 建立目錄，逐章載入 markdown 並渲染。
+// 簡易電子書閱讀器：解析書籍索引建立目錄，逐章載入 markdown 並渲染。
 
-let bookDir = 'book'; // 目前書籍變體資料夾，可由選單切換
+let bookDir = 'books/agent-design'; // 目前書籍資料夾(books/ 下的子目錄)，可由選單切換
+let bookIndex = 'index.md'; // 目前書籍的索引檔名(index.md 或 00-index.md)
+let allBooks = []; // 所有書籍 metadata(含 dir / index / label)
 // 使用相對路徑，讓 dev server(根目錄)與 GitHub Pages(子路徑)皆可運作。
 const bookBase = () => `${bookDir}/`;
 
@@ -44,7 +46,54 @@ function highlightLater(container) {
   ensureHljs()
     .then((hljs) => blocks.forEach((b) => hljs.highlightElement(b)))
     .catch(() => {
-      /* CDN 失敗就維持純文字,不影響閱讀 */
+      /* 載入失敗就維持純文字,不影響閱讀 */
+    });
+}
+
+// mermaid 延後載入:同 hljs,只有當內容真的含 ```mermaid 區塊時才動態抓本地檔。
+let mermaidPromise = null;
+function ensureMermaid() {
+  if (window.mermaid) return Promise.resolve(window.mermaid);
+  if (!mermaidPromise) {
+    mermaidPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = new URL('vendor/mermaid.min.js', import.meta.url).href;
+      s.onload = () => {
+        try {
+          const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          // securityLevel: 'loose' 讓標籤內的 <br/> 等 HTML 正常呈現(內容為自有文件,可信)。
+          window.mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'loose' });
+        } catch {
+          /* 初始化失敗就用預設值 */
+        }
+        resolve(window.mermaid);
+      };
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  return mermaidPromise;
+}
+
+// 將容器內的 ```mermaid 區塊(marked 產生的 <pre><code class="language-mermaid">)渲染成圖。
+let mermaidSeq = 0;
+function renderMermaid(container) {
+  const blocks = container.querySelectorAll('pre > code.language-mermaid');
+  if (!blocks.length) return;
+  const nodes = [];
+  blocks.forEach((code) => {
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.id = `mmd-${++mermaidSeq}`;
+    div.textContent = code.textContent; // textContent 已自動還原 HTML 實體,取回原始圖碼
+    code.parentElement.replaceWith(div);
+    nodes.push(div);
+  });
+  ensureMermaid()
+    .then((mermaid) => mermaid.run({ nodes }))
+    .catch(() => {
+      // 載入或渲染失敗:還原可見性,讓原始圖碼以文字呈現(不影響閱讀)。
+      nodes.forEach((n) => n.setAttribute('data-processed', 'error'));
     });
 }
 
@@ -54,7 +103,7 @@ async function fetchText(path) {
   return res.text();
 }
 
-// 把 markdown 內的相對資源路徑（assets/...）改寫為以 /book/ 為基底。
+// 把 markdown 內的相對資源路徑（assets/...）改寫為以目前書籍資料夾為基底。
 function rewriteAssetPaths(container) {
   container.querySelectorAll('img[src], a[href]').forEach((el) => {
     const attr = el.tagName === 'IMG' ? 'src' : 'href';
@@ -67,22 +116,29 @@ function rewriteAssetPaths(container) {
 
 async function loadIndex() {
   chapters = [];
-  const md = await fetchText(bookBase() + 'index.md');
+  const md = await fetchText(bookBase() + bookIndex);
   tocEl.innerHTML = marked.parse(md);
   rewriteAssetPaths(tocEl);
+  // 索引側欄只當目錄用,移除其中的程式碼/圖表區塊(例如 ai-agent 導讀頁的 mermaid)。
+  tocEl.querySelectorAll('pre').forEach((el) => el.remove());
 
-  // 收集章節順序，並攔截章節連結點擊。
+  // 收集章節順序並攔截連結點擊；同一章節被多次連結時只計一次(去重)。
+  const seen = new Set();
   tocEl.querySelectorAll('a[href]').forEach((a) => {
     const href = a.getAttribute('href') || '';
     const m = href.match(/([^/]+\.md)(?:#.*)?$/i);
     if (!m) return;
     const file = m[1];
-    chapters.push({ file, title: a.textContent.trim(), el: a });
+    if (file === bookIndex) return; // 索引自身不列為章節
     a.dataset.file = file;
     a.addEventListener('click', (e) => {
       e.preventDefault();
       navigate(file);
     });
+    if (!seen.has(file)) {
+      seen.add(file);
+      chapters.push({ file, title: a.textContent.trim(), el: a });
+    }
   });
 }
 
@@ -98,10 +154,27 @@ async function loadChapter(file) {
     const md = await fetchText(bookBase() + file);
     chapterEl.innerHTML = marked.parse(md);
     rewriteAssetPaths(chapterEl);
+    wireChapterLinks(chapterEl); // 章節間交叉連結改走 SPA 導航
+    renderMermaid(chapterEl); // 非阻塞:先替換 mermaid 區塊,再上色(避免把 mermaid 當程式碼)
     highlightLater(chapterEl); // 非阻塞:背景補上語法高亮
   } catch (err) {
     chapterEl.innerHTML = `<p class="error">${err.message}</p>`;
   }
+}
+
+// 章節內指向其他章節的 .md 連結,改為在閱讀器內導航(避免跳出到原始檔)。
+function wireChapterLinks(container) {
+  container.querySelectorAll('a[href]').forEach((a) => {
+    const href = a.getAttribute('href') || '';
+    const m = href.match(/([^/]+\.md)(?:#.*)?$/i);
+    if (!m) return;
+    const file = m[1];
+    if (!chapters.some((c) => c.file === file)) return; // 只攔截已知章節
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate(file);
+    });
+  });
 }
 
 function updatePager(file) {
@@ -171,9 +244,10 @@ function parseHash() {
   return { book: raw.slice(0, i), file: raw.slice(i + 1) };
 }
 
-// 切換書籍變體：重載目錄並開啟起始章節。
+// 切換書籍：重載目錄並開啟起始章節。
 async function switchBook(dir, { wantedFile = null, push = true } = {}) {
   bookDir = dir;
+  bookIndex = (allBooks.find((b) => b.dir === dir) || {}).index || 'index.md';
   const picker = document.getElementById('book-picker');
   if (picker) picker.value = dir;
   try {
@@ -198,7 +272,7 @@ function buildBookPicker(books) {
   for (const b of books) {
     const opt = document.createElement('option');
     opt.value = b.dir;
-    opt.textContent = `版本：${b.label}`;
+    opt.textContent = `📖 ${b.label}`;
     select.appendChild(opt);
   }
   select.value = bookDir;
@@ -466,13 +540,14 @@ applyVolume(
     try {
       books = await fetch('/api/books').then((r) => r.json());
     } catch {
-      books = [{ dir: 'book', variant: '', label: '預設' }];
+      books = [{ dir: 'books/agent-design', index: 'index.md', label: 'agent-design' }];
     }
   }
   if (!books.length) {
     tocEl.innerHTML = '<p class="error">找不到任何書籍。</p>';
     return;
   }
+  allBooks = books;
 
   const hash = parseHash();
   const dirs = books.map((b) => b.dir);

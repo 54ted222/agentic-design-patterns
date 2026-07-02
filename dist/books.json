@@ -1,1 +1,1 @@
-[{"dir":"book","variant":"","label":"預設"},{"dir":"book-lite","variant":"lite","label":"lite"}]
+[{"dir":"books/agent-design","index":"index.md","label":"agent-design"},{"dir":"books/agent-design-lite","index":"index.md","label":"agent-design-lite"},{"dir":"books/ai-agent","index":"00-index.md","label":"ai-agent"}]

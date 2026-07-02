@@ -11,22 +11,34 @@ const DIST = join(ROOT, 'dist');
 
 const THEME = '#2563eb';
 
-// ── 列出書籍變體(與 src/server.mjs 的 listBooks 邏輯一致) ──
+// ── 列出書籍(與 src/server.mjs 的 listBooks 邏輯一致) ──
+// books/ 底下每個含索引檔(index.md 或 00-index.md)的子資料夾即為一本書。
 async function listBooks() {
-  const entries = await readdir(ROOT, { withFileTypes: true });
-  const dirs = entries
-    .filter((e) => e.isDirectory() && /^book(-.+)?$/.test(e.name))
+  const BOOKS = 'books';
+  let entries;
+  try {
+    entries = await readdir(join(ROOT, BOOKS), { withFileTypes: true });
+  } catch {
+    return []; // 沒有 books/ 目錄
+  }
+  const names = entries
+    .filter((e) => e.isDirectory())
     .map((e) => e.name)
     .sort();
   const books = [];
-  for (const name of dirs) {
-    try {
-      await access(join(ROOT, name, 'index.md'));
-      const variant = name === 'book' ? '' : name.slice('book-'.length);
-      books.push({ dir: name, variant, label: variant || '預設' });
-    } catch {
-      /* 沒有 index.md 就略過 */
+  for (const name of names) {
+    let index = null;
+    for (const cand of ['index.md', '00-index.md']) {
+      try {
+        await access(join(ROOT, BOOKS, name, cand));
+        index = cand;
+        break;
+      } catch {
+        /* 試下一個候選索引檔名 */
+      }
     }
+    if (!index) continue; // 沒有索引檔就略過
+    books.push({ dir: `${BOOKS}/${name}`, index, label: name });
   }
   return books;
 }
@@ -325,7 +337,7 @@ const manifest = {
 };
 
 const swJs = `// PWA service worker:外殼 cache-first、書籍內容 network-first(離線回退快取)。
-const CACHE = 'adp-v3';
+const CACHE = 'adp-v4';
 const SHELL = [
   './',
   'index.html',
